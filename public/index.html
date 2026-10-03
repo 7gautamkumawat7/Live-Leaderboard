@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Leaderboard</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-subtle: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --border: #e2e8f0;
+      --border-dark: #0f172a;
+      --border-muted: #f1f5f9;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-subtle: #64748b;
+      --accent: #0f172a;
+      --accent-hover: #1e293b;
+      --radius: 8px;
+      --radius-sm: 6px;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding: 32px 20px 60px;
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    /* HEADER */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border-dark);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .brand-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #f59e0b;
+      transition: background-color 0.2s ease;
+    }
+
+    .status-dot.online {
+      background-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    }
+
+    .status-dot.offline {
+      background-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+    }
+
+    /* STATS SUMMARY */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .stat-card:hover {
+      border-color: var(--border-dark);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .stat-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-metric {
+      font-size: 24px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    .stat-detail {
+      font-size: 12px;
+      color: var(--text-subtle);
+      margin-top: 4px;
+    }
+
+    /* MAIN CONTENT GRID */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 880px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* PANELS / CARDS */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-subtle);
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text);
+    }
+
+    .card-body {
+      padding: 18px;
+    }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .btn:hover {
+      background: var(--surface-subtle);
+      border-color: var(--text-muted);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: var(--text);
+      border-color: var(--text);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: #1e293b;
+      border-color: #1e293b;
+      color: #ffffff;
+    }
+
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+
+    /* SEARCH & FILTER BAR */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-subtle);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 7px 12px 7px 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--border-dark);
+      box-shadow: 0 0 0 1px var(--border-dark);
+    }
+
+    /* TABLE */
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      padding: 10px 12px;
+      border-bottom: 2px solid var(--border);
+      background: var(--bg-subtle);
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    tbody tr:hover {
+      background: var(--bg-subtle);
+    }
+
+    .col-rank {
+      width: 56px;
+    }
+
+    .rank-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .rank-1 {
+      background: var(--text);
+      border-color: var(--text);
+      color: #ffffff;
+    }
+
+    .rank-2 {
+      border: 2px solid var(--text);
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .rank-3 {
+      border: 1.5px solid var(--text-muted);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      text-transform: uppercase;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .score-value {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text);
+      text-align: right;
+    }
+
+    .score-bar-bg {
+      width: 70px;
+      height: 4px;
+      background: var(--surface-subtle);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-left: auto;
+      margin-top: 4px;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      background: var(--text);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    /* FORM STYLES */
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .input-text {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .input-text:focus {
+      outline: none;
+      border-color: var(--border-dark);
+      box-shadow: 0 0 0 1px var(--border-dark);
+    }
+
+    .input-mono {
+      font-family: var(--font-mono);
+    }
+
+    .chips-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .chip-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 3px 8px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .chip-btn:hover {
+      background: var(--surface-subtle);
+      color: var(--text);
+      border-color: var(--border-dark);
+    }
+
+    /* ACTIVITY LOG */
+    .event-feed {
+      list-style: none;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .event-item {
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .event-item:last-child {
+      border-bottom: none;
+    }
+
+    .event-msg {
+      color: var(--text-muted);
+    }
+
+    .event-msg strong {
+      color: var(--text);
+    }
+
+    .event-time {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-subtle);
+      white-space: nowrap;
+    }
+
+    /* OFFLINE BANNER */
+    .alert-banner {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      color: #991b1b;
+    }
+
+    /* EMPTY STATE */
+    .empty-notice {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-notice p {
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--text-subtle);
+    }
+
+    /* FOOTER */
+    footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-subtle);
+      font-size: 12px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--surface-subtle);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <!-- HEADER -->
+    <header>
+      <div class="brand">
+        <h1 class="brand-title">Live Leaderboard</h1>
+      </div>
+      <div class="header-controls">
+        <div class="status-indicator">
+          <span id="statusDot" class="status-dot"></span>
+          <span id="statusLabel">Connecting...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ALERT BANNER -->
+    <div id="alertBanner" class="alert-banner">
+      <span id="alertText">Backend server is offline or unreachable.</span>
+      <button id="alertRetryBtn" class="btn btn-sm">Retry Connection</button>
+    </div>
+
+    <!-- METRICS OVERVIEW -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-title">Current Leader</div>
+        <div class="stat-metric" id="statLeaderName">-</div>
+        <div class="stat-detail" id="statLeaderScore">0 pts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Ranked Players</div>
+        <div class="stat-metric" id="statPlayerCount">0</div>
+        <div class="stat-detail">In top tier (limit: 10)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Average Score</div>
+        <div class="stat-metric" id="statAvgScore">0</div>
+        <div class="stat-detail">Across top players</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Last Sync</div>
+        <div class="stat-metric" id="statLastSync" style="font-size: 18px; padding-top: 5px;">--:--:--</div>
+        <div class="stat-detail">Auto-polling every 2s</div>
+      </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN VIEW -->
+    <div class="grid">
+      <!-- LEADERBOARD TABLE -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-title">Top Players</span>
+          <div style="display: flex; gap: 8px;">
+            <button id="togglePollingBtn" class="btn btn-sm">
+              Live Polling: <span id="pollingState" style="margin-left: 4px; font-weight: 700;">ON</span>
+            </button>
+            <button id="refreshBtn" class="btn btn-sm">Refresh</button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="toolbar">
+            <div class="search-box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="filterInput" class="search-input" placeholder="Filter by username...">
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button id="quickSeedBtn" class="btn btn-sm" title="Post sample player scores">
+                Seed Test Scores
+              </button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-rank">Rank</th>
+                  <th>Player</th>
+                  <th style="text-align: right;">Score</th>
+                  <th style="text-align: right; width: 90px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+
+          <div id="emptyNotice" class="empty-notice" style="display: none;">
+            <strong>No players found</strong>
+            <p>Submit scores below or click "Seed Test Scores" to get started.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SIDEBAR: SUBMIT & ACTIVITY -->
+      <aside style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- SUBMIT SCORE FORM -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Record Score</span>
+          </div>
+          <div class="card-body">
+            <form id="scoreForm">
+              <div class="field">
+                <label for="usernameField">Username</label>
+                <input type="text" id="usernameField" class="input-text" placeholder="e.g. alex, jordan, sam" required
+                  maxlength="50" autocomplete="off">
+                <div class="chips-group" id="userChips">
+                  <button type="button" class="chip-btn" data-user="alex">alex</button>
+                  <button type="button" class="chip-btn" data-user="jordan">jordan</button>
+                  <button type="button" class="chip-btn" data-user="sam">sam</button>
+                  <button type="button" class="chip-btn" data-user="casey">casey</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="pointsField">Points to Add</label>
+                <input type="number" id="pointsField" class="input-text input-mono" value="50" min="1" step="1"
+                  required>
+                <div class="chips-group">
+                  <button type="button" class="chip-btn chip-pts" data-pts="25">+25</button>
+                  <button type="button" class="chip-btn chip-pts" data-pts="50">+50</button>
+                  <button type="button" class="chip-btn chip-pts" data-pts="100">+100</button>
+                  <button type="button" class="chip-btn chip-pts" data-pts="250">+250</button>
+                </div>
+              </div>
+
+              <button type="submit" id="submitBtn" class="btn btn-primary" style="width: 100%; margin-top: 6px;">
+                Submit Points
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- RECENT ACTIVITY LOG -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Activity</span>
+            <button id="clearEventsBtn" class="btn btn-sm" style="padding: 2px 6px; font-size: 11px;">Clear</button>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <ul id="eventList" class="event-feed">
+              <li class="event-item">
+                <span class="event-msg">Dashboard ready</span>
+                <span class="event-time">Now</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="f-content">
+        Leaderboard backend made by <code> Gautam </code>
+      </div>
+
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      let isPolling = true;
+      let pollInterval = null;
+      let cachedPlayers = [];
+
+      const statusDot = document.getElementById("statusDot");
+      const statusLabel = document.getElementById("statusLabel");
+      const alertBanner = document.getElementById("alertBanner");
+      const alertText = document.getElementById("alertText");
+      const alertRetryBtn = document.getElementById("alertRetryBtn");
+
+      const statLeaderName = document.getElementById("statLeaderName");
+      const statLeaderScore = document.getElementById("statLeaderScore");
+      const statPlayerCount = document.getElementById("statPlayerCount");
+      const statAvgScore = document.getElementById("statAvgScore");
+      const statLastSync = document.getElementById("statLastSync");
+
+      const tableBody = document.getElementById("tableBody");
+      const emptyNotice = document.getElementById("emptyNotice");
+      const filterInput = document.getElementById("filterInput");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const togglePollingBtn = document.getElementById("togglePollingBtn");
+      const pollingState = document.getElementById("pollingState");
+      const quickSeedBtn = document.getElementById("quickSeedBtn");
+
+      const scoreForm = document.getElementById("scoreForm");
+      const usernameField = document.getElementById("usernameField");
+      const pointsField = document.getElementById("pointsField");
+      const submitBtn = document.getElementById("submitBtn");
+      const userChips = document.getElementById("userChips");
+
+      const eventList = document.getElementById("eventList");
+      const clearEventsBtn = document.getElementById("clearEventsBtn");
+
+      async function init() {
+        bindEvents();
+        await fetchLeaderboard();
+        startPolling();
+      }
+
+      function setStatus(online, msg) {
+        if (online) {
+          statusDot.className = "status-dot online";
+          statusLabel.textContent = msg || "API Ready";
+          alertBanner.style.display = "none";
+        } else {
+          statusDot.className = "status-dot offline";
+          statusLabel.textContent = "Offline";
+          alertBanner.style.display = "flex";
+          alertText.textContent = msg || "Cannot connect to server. Check terminal for errors.";
+        }
+      }
+
+      async function fetchLeaderboard() {
+        try {
+          const res = await fetch("/leaderboard?limit=10");
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          cachedPlayers = data.leaderboard || [];
+          setStatus(true, "API Connected");
+          renderTable(cachedPlayers);
+          updateMetrics(cachedPlayers);
+          statLastSync.textContent = new Date().toLocaleTimeString();
+        } catch (err) {
+          setStatus(false, "Server unreachable at localhost:3000");
+          console.warn("Failed to retrieve leaderboard:", err.message);
+        }
+      }
+
+      function renderTable(players) {
+        const filter = (filterInput.value || "").trim().toLowerCase();
+        const filtered = players.filter(p => !filter || p.value.toLowerCase().includes(filter));
+
+        if (filtered.length === 0) {
+          tableBody.innerHTML = "";
+          emptyNotice.style.display = "block";
+          return;
+        }
+
+        emptyNotice.style.display = "none";
+        const maxScore = Math.max(...players.map(p => p.score), 1);
+
+        tableBody.innerHTML = filtered.map((player, index) => {
+          const rank = index + 1;
+          const scorePercent = Math.min(100, Math.round((player.score / maxScore) * 100));
+
+          let rankClass = "rank-tag";
+          if (rank === 1) rankClass += " rank-1";
+          else if (rank === 2) rankClass += " rank-2";
+          else if (rank === 3) rankClass += " rank-3";
+
+          const initials = player.value.slice(0, 2);
+
+          return `
+            <tr>
+              <td class="col-rank">
+                <span class="${rankClass}">${rank}</span>
+              </td>
+              <td>
+                <div class="user-info">
+                  <div class="user-avatar">${escapeHtml(initials)}</div>
+                  <span class="user-name">${escapeHtml(player.value)}</span>
+                </div>
+              </td>
+              <td>
+                <div class="score-value">${player.score.toLocaleString()}</div>
+                <div class="score-bar-bg">
+                  <div class="score-bar-fill" style="width: ${scorePercent}%"></div>
+                </div>
+              </td>
+              <td style="text-align: right;">
+                <button class="btn btn-sm add-quick-btn" data-user="${escapeHtml(player.value)}" data-pts="50">
+                  +50
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function updateMetrics(players) {
+        if (players.length > 0) {
+          const leader = players[0];
+          statLeaderName.textContent = leader.value;
+          statLeaderScore.textContent = `${leader.score.toLocaleString()} pts`;
+          statPlayerCount.textContent = players.length;
+
+          const sum = players.reduce((acc, p) => acc + p.score, 0);
+          const avg = Math.round(sum / players.length);
+          statAvgScore.textContent = avg.toLocaleString();
+        } else {
+          statLeaderName.textContent = "-";
+          statLeaderScore.textContent = "0 pts";
+          statPlayerCount.textContent = "0";
+          statAvgScore.textContent = "0";
+        }
+      }
+
+      async function submitScore(username, points) {
+        submitBtn.disabled = true;
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = "Saving...";
+
+        try {
+          const res = await fetch("/score", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, points }),
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `HTTP ${res.status}`);
+          }
+
+          const result = await res.json();
+          logEvent(`<strong>${escapeHtml(username)}</strong> scored +${points} (Total: ${result.newTotalScore})`);
+          await fetchLeaderboard();
+        } catch (err) {
+          alert("Score submission failed: " + err.message);
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
+      }
+
+      function logEvent(htmlMessage) {
+        const timeStr = new Date().toLocaleTimeString();
+        const li = document.createElement("li");
+        li.className = "event-item";
+        li.innerHTML = `
+          <span class="event-msg">${htmlMessage}</span>
+          <span class="event-time">${timeStr}</span>
+        `;
+        eventList.insertBefore(li, eventList.firstChild);
+
+        while (eventList.children.length > 25) {
+          eventList.removeChild(eventList.lastChild);
+        }
+      }
+
+      function startPolling() {
+        if (pollInterval) clearInterval(pollInterval);
+        if (isPolling) {
+          pollInterval = setInterval(fetchLeaderboard, 2000);
+        }
+      }
+
+      function togglePolling() {
+        isPolling = !isPolling;
+        pollingState.textContent = isPolling ? "ON" : "OFF";
+        startPolling();
+      }
+
+      function bindEvents() {
+        refreshBtn.addEventListener("click", () => fetchLeaderboard());
+        alertRetryBtn.addEventListener("click", () => fetchLeaderboard());
+        togglePollingBtn.addEventListener("click", togglePolling);
+
+        filterInput.addEventListener("input", () => {
+          renderTable(cachedPlayers);
+        });
+
+        scoreForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const user = usernameField.value.trim();
+          const pts = parseInt(pointsField.value, 10);
+          if (user && !isNaN(pts) && pts > 0) {
+            submitScore(user, pts);
+          }
+        });
+
+        userChips.addEventListener("click", (e) => {
+          const btn = e.target.closest(".chip-btn");
+          if (btn && btn.dataset.user) {
+            usernameField.value = btn.dataset.user;
+            usernameField.focus();
+          }
+        });
+
+        document.querySelectorAll(".chip-pts").forEach(chip => {
+          chip.addEventListener("click", () => {
+            pointsField.value = chip.dataset.pts;
+          });
+        });
+
+        tableBody.addEventListener("click", (e) => {
+          const btn = e.target.closest(".add-quick-btn");
+          if (btn) {
+            const user = btn.dataset.user;
+            const pts = parseInt(btn.dataset.pts, 10);
+            submitScore(user, pts);
+          }
+        });
+
+        quickSeedBtn.addEventListener("click", async () => {
+          const sample = [
+            { name: "alex", pts: 120 },
+            { name: "jordan", pts: 95 },
+            { name: "sam", pts: 80 },
+            { name: "casey", pts: 60 },
+            { name: "taylor", pts: 40 },
+          ];
+          for (const item of sample) {
+            await submitScore(item.name, item.pts);
+          }
+        });
+
+        clearEventsBtn.addEventListener("click", () => {
+          eventList.innerHTML = `
+            <li class="event-item">
+              <span class="event-msg">Log cleared</span>
+              <span class="event-time">${new Date().toLocaleTimeString()}</span>
+            </li>
+          `;
+        });
+      }
+
+      function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      init();
+    })();
+  </script>
+</body>
+
+</html>
