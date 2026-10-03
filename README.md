@@ -209,6 +209,4 @@ To stop containers and wipe persistent data volumes:
 docker compose down -v
 ```
 
-## License
 
-MIT
